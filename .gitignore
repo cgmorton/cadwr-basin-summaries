@@ -1,0 +1,13 @@
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm project settings
+.idea
+
+# MacOS
+*.DS_Store
+
+ca_gw_basins
+# ca_gw_basins.zip
+
+csv_ag_lands
