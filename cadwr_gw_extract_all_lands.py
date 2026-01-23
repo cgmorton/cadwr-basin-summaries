@@ -15,8 +15,10 @@ logging.getLogger('googleapiclient').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 
 # CGM - Intentionally excluding SIMS from the "all lands" analysis
-MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SSEBOP']
+MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SSEBOP', 'ENSEMBLE']
 PROJECT_ID = 'openet'
+START_DATE = '2003-10-01'
+END_DATE = '2026-01-01'
 
 
 def main(
@@ -26,6 +28,7 @@ def main(
         project_id=PROJECT_ID,
         overwrite_flag=False,
         reverse_flag=False,
+        processes=20,
 ):
     """Extract California/CIMIS OpenET monthly aggregations for all lands
 
@@ -43,6 +46,8 @@ def main(
         If True, remove all existing CSV files.
     reverse_flag : bool, optional
         If True, dates will be processed in reverse order (the default is False).
+    processes : int, optional
+        The number of multiprocessing workers.
 
     """
     export_name = 'all_lands'
@@ -56,7 +61,6 @@ def main(
     # These feature properties will be written to the CSV files
     feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
 
-    et_band = 'et'
     model_coll_ids = {
         'DISALEXI': f'projects/openet/assets/disalexi/california/cimis/monthly/v2_1',
         'EEMETRIC': f'projects/openet/assets/eemetric/california/cimis/monthly/v2_1',
@@ -65,9 +69,11 @@ def main(
         # CGM - Intentionally excluding SIMS from the "all lands" analysis
         # 'SIMS': f'projects/openet/assets/sims/california/cimis/monthly/v2_1',
         'SSEBOP': f'projects/openet/assets/ssebop/california/cimis/monthly/v2_1',
-        # CGM - Supporting the ensemble will require changing the default et band
-        # 'ENSEMBLE': f'projects/openet/assets/ensemble/california/cimis/monthly/v2_1',
+        'ENSEMBLE': f'projects/openet/assets/ensemble/california/cimis/monthly/v2_1',
     }
+
+    model_et_band = 'et'
+    ensemble_et_band = 'et_ensemble_mad'
 
     export_ws = os.path.join(os.getcwd(), f'csv_{export_name}')
     if not os.path.isdir(export_ws):
@@ -107,6 +113,11 @@ def main(
     # Process by model and date
     for model_name in models:
         print(f'\n{model_name}')
+
+        if model_name == 'ENSEMBLE':
+            et_band = ensemble_et_band
+        else:
+            et_band = model_et_band
 
         model_coll_id = model_coll_ids[model_name]
         logging.debug(f'  {model_coll_id}')
@@ -152,7 +163,7 @@ def main(
 
             logging.debug('  requesting data')
             with multiprocessing.Pool(
-                    processes=20,
+                    processes=processes,
                     initializer=ee_initializer,
                     initargs=(project_id, 'https://earthengine-highvolume.googleapis.com')
             ) as p:
@@ -246,14 +257,17 @@ def arg_parse():
         '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
         help='Space separated list of OpenET models to process')
     parser.add_argument(
-        '--start', type=openet.core.utils.arg_valid_date, metavar='DATE', default=None,
+        '--start', type=openet.core.utils.arg_valid_date, metavar='DATE', default=START_DATE,
         help='Start date (format YYYY-MM-DD)')
     parser.add_argument(
-        '--end', type=openet.core.utils.arg_valid_date, metavar='DATE', default=None,
+        '--end', type=openet.core.utils.arg_valid_date, metavar='DATE', default=END_DATE,
         help='End date (format YYYY-MM-DD)')
     parser.add_argument(
         '--overwrite', default=False, action='store_true',
         help='Force overwrite of existing files')
+    parser.add_argument(
+        '--mp', type=int, default=20,
+        help='Number of multiprocessing workers')
     parser.add_argument(
         '--project', default='openet',
         help='Google cloud project ID to use for GEE authentication')
@@ -280,4 +294,5 @@ if __name__ == '__main__':
         project_id=args.project,
         overwrite_flag = args.overwrite,
         reverse_flag=args.reverse,
+        processes=args.mp,
     )

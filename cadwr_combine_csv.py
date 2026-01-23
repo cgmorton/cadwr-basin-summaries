@@ -6,7 +6,7 @@ import pprint
 
 import pandas as pd
 
-MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SIMS', 'SSEBOP']
+MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SIMS', 'SSEBOP', 'ENSEMBLE']
 
 
 def main(overwrite_flag=False):
