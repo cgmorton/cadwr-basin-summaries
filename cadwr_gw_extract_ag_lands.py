@@ -21,6 +21,7 @@ END_DATE = '2026-01-01'
 
 
 def main(
+        features='basins',
         models=MODELS,
         start_date=START_DATE,
         end_date=END_DATE,
@@ -33,6 +34,7 @@ def main(
 
     Parameters
     ----------
+    features : {'basins', 'counties'}
     models : list, optional
         List of models to process.  All models will be processed if not set.
     start_date : str, optional
@@ -49,21 +51,29 @@ def main(
         The number of multiprocessing workers.
 
     """
-    export_name = 'ag_lands'
+    # export_name = 'ag_lands'
 
     # # CM - Defining inside extraction function for now
     # # Exclude urban pixels/polygons in the California statewide crop mapping data
     # ag_mask = ee.Image('projects/openet/assets/crop_type/california/2024')
     # ag_mask = ag_mask.updateMask(ag_mask.neq(82))
 
-    feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
+    if features.lower() in ['basins', 'gw_basins']:
+        export_name = 'gw_basin_ag_lands'
 
-    # Feature property used to uniquely identify each feature
-    feature_id_property = 'Basin_Subb'
-    # feature_id_property = 'Filter_NAM'
+        feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
 
-    # These feature properties will be written to the CSV files
-    feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
+        # Feature property used to uniquely identify each feature
+        feature_id_property = 'Basin_Subb'
+        # feature_id_property = 'Filter_NAM'
+
+        # These feature properties will be written to the CSV files
+        feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
+    # elif features.lower() in ['counties', 'county']:
+    #     export_name = 'county_ag_lands'
+    #     feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
+    else:
+        raise ValueError(f'unsupported features parameter: {features}')
 
     model_coll_ids = {
         'DISALEXI': f'projects/openet/assets/disalexi/california/cimis/monthly/v2_1',
@@ -79,8 +89,8 @@ def main(
     ensemble_et_band = 'et_ensemble_mad'
 
     export_ws = os.path.join(os.getcwd(), f'csv_{export_name}')
-    # if not os.path.isdir(export_ws):
-    #     os.makedirs(export_ws)
+    if not os.path.isdir(export_ws):
+        os.makedirs(export_ws)
 
     ee_initializer(project_id=project_id, opt_url='https://earthengine-highvolume.googleapis.com')
 
@@ -174,7 +184,7 @@ def main(
 
             logging.debug('  building dataframe')
             output_df = pd.DataFrame(output)
-            output_df.insert(loc=0, column='Model', value=model_name)
+            output_df.insert(loc=0, column='MODEL', value=model_name)
 
             # Copy any source collection properties
             # Writing them this way so that they are written after the model and date
@@ -234,7 +244,11 @@ def feature_extract(
         .updateMask(ag_mask)
         .reduceRegion(
             geometry=feature.geometry(),
-            reducer=ee.Reducer.mean().unweighted().combine(ee.Reducer.count(), sharedInputs=True),
+            reducer=ee.Reducer.mean().unweighted()
+                .combine(ee.Reducer.stdDev().unweighted(), sharedInputs=True)
+                .combine(ee.Reducer.median(maxRaw=1000000).unweighted(), sharedInputs=True)
+                .combine(ee.Reducer.percentile([25, 75], ['25pct', '75pct'], maxRaw=1000000).unweighted(), sharedInputs=True)
+                .combine(ee.Reducer.count(), sharedInputs=True),
             crs=export_crs,
             crsTransform=export_geo,
             bestEffort=False,
@@ -247,14 +261,20 @@ def feature_extract(
     #     print('  unhandled exception, skipping feature')
     #     continue
 
-    if output_info['et_mean']:
-        output_info['et_mean'] = round(output_info['et_mean'], 6)
+    # Round the outputs to 4 decimal places
+    for v in ['et_mean', 'et_stdDev', 'et_25pct', 'et_50pct', 'et_75pct']:
+        if (v in output_info.keys()) and output_info[v]:
+            output_info[v] = round(output_info[v], 4)
 
     return {
-        'Date': image_date.strftime('%Y-%m-%d'),
+        'DATE': image_date.strftime('%Y-%m-%d'),
         feature_id_property: ftr_id,
-        'ET': output_info['et_mean'],
-        'Pixel_Count': output_info['et_count'],
+        'ET_MEAN': output_info['et_mean'],
+        'ET_MEDIAN': output_info['et_median'],
+        'ET_PCT25': output_info['et_25pct'],
+        'ET_PCT75': output_info['et_75pct'],
+        'ET_STDDEV': output_info['et_stdDev'],
+        'PIXEL_COUNT': output_info['et_count'],
     }
 
 
@@ -263,6 +283,9 @@ def arg_parse():
     parser = argparse.ArgumentParser(
         description='Extract California/CIMIS OpenET monthly aggregations for agricultural lands',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        '--features', default='basins', choices=['basins', 'counties'],
+        help='Features to aggregate over')
     parser.add_argument(
         '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
         help='Space separated list of OpenET models to process')
@@ -298,6 +321,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=args.loglevel, format='%(message)s')
 
     main(
+        features=args.features,
         models=args.models,
         start_date=args.start,
         end_date=args.end,
