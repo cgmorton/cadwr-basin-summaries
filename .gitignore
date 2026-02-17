@@ -7,5 +7,8 @@
 # MacOS
 *.DS_Store
 
+ca_counties
 ca_gw_basins
 # ca_gw_basins.zip
+
+remove

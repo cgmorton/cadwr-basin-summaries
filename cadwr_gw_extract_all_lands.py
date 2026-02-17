@@ -52,22 +52,33 @@ def main(
         The number of multiprocessing workers.
 
     """
-    # export_name = 'all_lands'
+    export_name = 'all_lands'
 
     if features.lower() in ['basins', 'gw_basins']:
-        export_name = 'gw_basin_all_lands'
-
+        export_name = f'gw_basin_{export_name}'
         feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
-
         # Feature property used to uniquely identify each feature
         feature_id_property = 'Basin_Subb'
         # feature_id_property = 'Filter_NAM'
-
         # These feature properties will be written to the CSV files
         feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
-    # elif features.lower() in ['counties', 'county']:
-    #     export_name = 'county_all_lands'
-    #     feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
+    elif features.lower() in ['counties', 'county']:
+        export_name = f'county_{export_name}'
+        feature_coll_id = 'projects/ee-cgmorton/assets/ca_counties'
+        feature_id_property = 'NAME'
+        feature_properties = ['GEOID', 'STATEFP', 'COUNTYFP']
+        # ALAND: 9778891285
+        # AWATER: 185818274
+        # COUNTYFP: 089
+        # COUNTYNS: 01682610
+        # GEOID: 06089
+        # GEOIDFQ: 0500000US06089
+        # LSAD: 06
+        # NAME: Shasta
+        # NAMELSAD: Shasta County
+        # STATEFP: 06
+        # STATE_NAME: California
+        # STUSPS: CA
     else:
         raise ValueError(f'unsupported features parameter: {features}')
 
@@ -85,7 +96,7 @@ def main(
     model_et_band = 'et'
     ensemble_et_band = 'et_ensemble_mad'
 
-    export_ws = os.path.join(os.getcwd(), f'csv_{features}_{export_name}')
+    export_ws = os.path.join(os.getcwd(), f'csv_{export_name}')
     if not os.path.isdir(export_ws):
         os.makedirs(export_ws)
 
@@ -236,12 +247,13 @@ def feature_extract(
             reducer=ee.Reducer.mean().unweighted()
                 .combine(ee.Reducer.stdDev().unweighted(), sharedInputs=True)
                 .combine(ee.Reducer.median(maxRaw=1000000).unweighted(), sharedInputs=True)
-                .combine(ee.Reducer.percentile([25, 75], ['25pct', '75pct'], maxRaw=1000000).unweighted(), sharedInputs=True)
+                .combine(ee.Reducer.percentile([25, 75], ['25pct', '75pct'], maxRaw=1000000).unweighted(),
+                         sharedInputs=True)
                 .combine(ee.Reducer.count(), sharedInputs=True),
             crs=export_crs,
             crsTransform=export_geo,
             bestEffort=False,
-            # maxPixels=,
+            maxPixels=100000000,
             # tileScale=,
         )
         .getInfo()
@@ -251,7 +263,7 @@ def feature_extract(
     #     continue
 
     # Round the outputs to 4 decimal places
-    for v in ['et_mean', 'et_stdDev', 'et_25pct', 'et_50pct', 'et_75pct']:
+    for v in ['et_mean', 'et_median', 'et_stdDev', 'et_25pct', 'et_50pct', 'et_75pct']:
         if (v in output_info.keys()) and output_info[v]:
             output_info[v] = round(output_info[v], 4)
 
