@@ -6,6 +6,6 @@ By default, all data from 2003-10-10 to 2025-12-31 will be included in the extra
 
 For the "all_lands" extraction tool, data from all models except SIMS is used and no masking is applied.
 
-For the "ag_lands" extraction, data from all models was used but the California Statewide Crop Mapping (https://data.cnra.ca.gov/dataset/statewide-crop-mapping) mask was applied to only include agricultural pixels.  For the crop map, all features except those labeled as "Urban" were included.
+For the "ag_lands" extraction, data from all models was used but the 2024 California Statewide Crop Mapping (https://data.cnra.ca.gov/dataset/statewide-crop-mapping) mask was applied to only include agricultural pixels.  For the crop map, all features except those labeled as "Urban" were included.
 
 After the individual csv files have been generated, the `cadwr_combine_csv.py` tool can be run to combine the CSV files by model and to generate a single CSV containing all models and dates.  These files are saved in the `csv_ag_lands` and `csv_all_lands` folders.
