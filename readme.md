@@ -9,3 +9,14 @@ For the "all_lands" extraction tool, data from all models except SIMS is used an
 For the "ag_lands" extraction, data from all models was used but the 2024 California Statewide Crop Mapping (https://data.cnra.ca.gov/dataset/statewide-crop-mapping) mask was applied to only include agricultural pixels.  For the crop map, all features except those labeled as "Urban" were included.
 
 After the individual csv files have been generated, the `cadwr_combine_csv.py` tool can be run to combine the CSV files by model and to generate a single CSV containing all models and dates.  These files are saved in the `csv_ag_lands` and `csv_all_lands` folders. The `stitch_to_gw_shapefile.ipynb` script combines the tabular output with the basin geometery and saves each model's data to a separate shapefile. Please use the *per_cov.shp files to inform percent coverage within each basin unit. 
+
+To run the python script, it accepts 4 parameters:
+- shp-file  : feature boundaries
+- et-csv    : et timeseries
+- merge-key : the column that the shapefile and et data use (must be identical)
+- out   : output directory
+
+Example to run:
+```python
+python stitch_to_gw_shapefile.py --shp-file ./ca_counties/CA_Counties.shp --et-csv ./csv_county_ag_lands/county_ag_lands_all_models.csv --merge-key NAME --out ./shapefile_counties_ag_lands
+```
