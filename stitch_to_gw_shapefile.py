@@ -36,9 +36,14 @@ if __name__ == "__main__":
     # Multiplying pixel area by max pixel count gives max total area
     max_pixels["MAX_PIXEL_AREA"] = max_pixels["PIXEL_COUNT"] * 900
     max_area_series = max_pixels["MAX_PIXEL_AREA"]
+    # convert m2 to acres
+    acres_2_m2 = 4046.86 #4046 m2 in 1 acre
+    max_area_series_acres = max_area_series / acres_2_m2
 
     # Multiply the mean ET value by the maximum total area to compute the volume of ET for each groundwater basin or county boundary.
-    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: g["ET_MEAN"] * max_area_series[g["NAME"]], axis=1)
+    af2m3 = 1233.48 # 1233.48 m3 in 1 acre ft
+    # convert
+    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: g["ET_MEAN"]/1000 * max_area_series[g["NAME"]]/af2m3, axis=1)
     all_data_df["ET_VOL"] = all_data_df["ET_VOL"].round(2)
 
     stat_names = ["MEAN", "MEDIAN", "STDDEV", "PCT75", "PCT25", "PER_COV", "VOL"]
@@ -88,6 +93,9 @@ if __name__ == "__main__":
                 merged, result_i, left_on=merge_on, right_index=True, how="left"
             )
         i += 1
+    #@Robin please verify this step, do we need another merge?
+    
+    merged['ag_area']=max_area_series_acres
 
     modshort = all_data_df["MODEL"].str.slice(0, 3).unique()
     model_name_long = dict(
