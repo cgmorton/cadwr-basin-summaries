@@ -38,7 +38,8 @@ if __name__ == "__main__":
     max_area_series = max_pixels["MAX_PIXEL_AREA"]
 
     # Multiply the mean ET value by the maximum total area to compute the volume of ET for each groundwater basin or county boundary.
-    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: g["ET_MEAN"] * max_area_series[g["NAME"]], axis=1)
+    # The ET_MEAN column is divided by 25.4 to convert from mm to in.
+    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 25.4) * max_area_series[g["NAME"]], axis=1)
     all_data_df["ET_VOL"] = all_data_df["ET_VOL"].round(2)
 
     stat_names = ["MEAN", "MEDIAN", "STDDEV", "PCT75", "PCT25", "PER_COV", "VOL"]
