@@ -21,7 +21,7 @@ if __name__ == "__main__":
     reference_shp["area_sq_meters"] = reference_shp.area
     # Conversion to acres from sq meters
     reference_shp["area_acres"] = reference_shp["area_sq_meters"] / 4046.86
-    ref_shp_slim = reference_shp[[merge_on, "area_acres", "geometry"]]
+    ref_shp_slim = reference_shp[[merge_on, "area_sq_meters", "area_acres", "geometry"]]
 
     # All model ET data
     all_data_df = pd.read_csv(args.et_csv, parse_dates=["DATE"])
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # Multiply the mean ET value by the maximum total area to compute the volume of ET for each groundwater basin or county boundary.
     # The ET_MEAN column is divided by 25.4 to convert from mm to in.
-    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 25.4) * max_area_series[g["NAME"]], axis=1)
+    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 25.4) * max_area_series[g[merge_on]], axis=1)
     all_data_df["ET_VOL"] = all_data_df["ET_VOL"].round(2)
 
     stat_names = ["MEAN", "MEDIAN", "STDDEV", "PCT75", "PCT25", "PER_COV", "VOL"]
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             ss_cols = (
                 [merge_on]
                 + list(merged.filter(like=modname + stat_abbr, axis=1).columns)
-                + ["area_acres", "geometry"]
+                + ["area_sq_meters", "area_acres", "geometry"]
             )
 
             full_mod_name = model_name_long[modname]
