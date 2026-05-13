@@ -45,6 +45,10 @@ if __name__ == "__main__":
     # convert
     all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"]/1000) * (max_area_series[g[merge_on]]/af2m3), axis=1)
     all_data_df["ET_VOL"] = all_data_df["ET_VOL"].round(2)
+    # Unit conversion to inches.
+    all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] = all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] / 25.4
+    # Assign max area acres to each polygon
+    ref_shp_slim["max_mask_area_acres"] = reference_shp.apply(lambda g: max_area_series_acres[g[merge_on]], axis=1)
 
     stat_names = ["MEAN", "MEDIAN", "STDDEV", "PCT75", "PCT25", "PER_COV", "VOL"]
     abreviations = {
@@ -107,7 +111,7 @@ if __name__ == "__main__":
             ss_cols = (
                 [merge_on]
                 + list(merged.filter(like=modname + stat_abbr, axis=1).columns)
-                + ["area_sq_meters", "area_acres", "geometry"]
+                + ["area_sq_meters", "area_acres", "max_mask_area_acres", "geometry"]
             )
 
             full_mod_name = model_name_long[modname]
