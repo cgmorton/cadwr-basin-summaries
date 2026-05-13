@@ -6,6 +6,10 @@ import glob
 import numpy as np
 import pandas as pd
 
+METERS_TO_ACRES = 4046.86
+ACREFT_TO_METERS3 = 1233.48
+MM_TO_IN = 25.4
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--shp-file")
 parser.add_argument("--et-csv")
@@ -20,7 +24,7 @@ if __name__ == "__main__":
     # Features are meter-based CRS - so area actually works here
     reference_shp["area_sq_meters"] = reference_shp.area
     # Conversion to acres from sq meters
-    reference_shp["area_acres"] = reference_shp["area_sq_meters"] / 4046.86
+    reference_shp["area_acres"] = reference_shp["area_sq_meters"] / METERS_TO_ACRES
     ref_shp_slim = reference_shp[[merge_on, "area_sq_meters", "area_acres", "geometry"]]
 
     # All model ET data
@@ -37,16 +41,14 @@ if __name__ == "__main__":
     max_pixels["MAX_PIXEL_AREA"] = max_pixels["PIXEL_COUNT"] * 900
     max_area_series = max_pixels["MAX_PIXEL_AREA"]
     # convert m2 to acres
-    acres_2_m2 = 4046.86 #4046 m2 in 1 acre
-    max_area_series_acres = max_area_series / acres_2_m2
+    max_area_series_acres = max_area_series / METERS_TO_ACRES
 
     # Multiply the mean ET value by the maximum total area to compute the volume of ET for each groundwater basin or county boundary.
-    af2m3 = 1233.48 # 1233.48 m3 in 1 acre ft
     # convert
-    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"]/1000) * (max_area_series[g[merge_on]]/af2m3), axis=1)
+    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 1000) * (max_area_series[g[merge_on]] / ACREFT_TO_METERS3), axis=1)
     all_data_df["ET_VOL"] = all_data_df["ET_VOL"].round(2)
     # Unit conversion to inches.
-    all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] = all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] / 25.4
+    all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] = all_data_df[["ET_MEAN", "ET_MEDIAN", "ET_STDDEV", "ET_PCT75", "ET_PCT25"]] / MM_TO_IN
     # Assign max area acres to each polygon
     ref_shp_slim["max_mask_area_acres"] = reference_shp.apply(lambda g: max_area_series_acres[g[merge_on]], axis=1)
 
