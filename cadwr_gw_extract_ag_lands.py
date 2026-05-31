@@ -237,7 +237,8 @@ def feature_extract(
 
     # CGM - Defining here to reduce the number of parameters passed to the function
     # Exclude urban pixels/polygons in the California statewide crop mapping data
-    ag_mask = ee.Image('projects/openet/assets/crop_type/california/2024')
+    ag_mask = ee.Image('projects/csumb-et-tools/assets/ca2024_urbanmask')
+    
     ag_mask = ag_mask.updateMask(ag_mask.neq(82))
 
     feature = (
