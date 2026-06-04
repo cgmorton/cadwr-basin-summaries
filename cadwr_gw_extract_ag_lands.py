@@ -21,7 +21,7 @@ END_DATE = '2026-01-01'
 
 
 def main(
-        features='basins',
+        features='county',
         models=MODELS,
         start_date=START_DATE,
         end_date=END_DATE,
@@ -60,6 +60,7 @@ def main(
 
     if features.lower() in ['basins', 'gw_basins']:
         export_name = f'gw_basin_{export_name}'
+        print(export_name)
         feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
         # Feature property used to uniquely identify each feature
         feature_id_property = 'Basin_Subb'
@@ -68,6 +69,7 @@ def main(
         feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
     elif features.lower() in ['counties', 'county']:
         export_name = f'county_{export_name}'
+        print(export_name)
         feature_coll_id = 'projects/ee-cgmorton/assets/ca_counties'
         feature_id_property = 'NAME'
         feature_properties = ['GEOID', 'STATEFP', 'COUNTYFP']
@@ -100,6 +102,7 @@ def main(
     ensemble_et_band = 'et_ensemble_mad'
 
     export_ws = os.path.join(os.getcwd(), f'csv_{export_name}')
+    print(export_ws)
     if not os.path.isdir(export_ws):
         os.makedirs(export_ws)
 
@@ -170,6 +173,7 @@ def main(
             )
 
             if os.path.exists(model_date_csv) and not overwrite_flag:
+                print(model_date_csv)
                 logging.debug('  csv already exist and overwrite is False')
                 continue
 
@@ -297,7 +301,7 @@ def arg_parse():
         description='Extract California/CIMIS OpenET monthly aggregations for agricultural lands',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--features', default='basins', choices=['basins', 'counties'],
+        '--features', default='counties', choices=['basins', 'counties'],
         help='Features to aggregate over')
     parser.add_argument(
         '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
