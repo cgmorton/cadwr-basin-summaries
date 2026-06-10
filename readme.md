@@ -34,5 +34,5 @@ python stitch_to_gw_shapefile.py --shp-file ./ca_counties/CA_Counties.shp --et-c
     * stdev: standard deviation of ET depth values within each aggregation unit
     * vol: volume of ET in units of acre-ft for each unit
 * The attribute tables of each shapefile include:
-  * Each table contains information on the county or groundwtaer basin name ('NAME'), area ('area_sq_me', 'area_acres'), masked area ('max_mask_a') and monthly data for each statistic.
-  * Monthly data in each statistic can be interpretted from the column name. Where 'ENSVOL0503' indicates the OpenET ensemble ('ENS') volume ('VOL') for 2005 ('05') in March ('03').
+  * Each table contains information on the county or groundwater basin name ('NAME'), area ('area_sq_me', 'area_acres'), masked area ('max_mask_a') and monthly data for each statistic.
+  * Monthly data in each statistic can be interpretted from the column name. For example, 'ENSVOL0503' indicates the OpenET ensemble ('ENS') volume ('VOL') for 2005 ('05') in March ('03').
