@@ -1,1 +1,11 @@
-basin_id,area_sq_m,area_acres,max_mask_area_acres, mean_inches, mean_acre_ft, timestep, monthly,year,month,year_month
+# Headers for data summers for SGMA data viewer
+# basin_id: Basin_Subb
+# county_id: COUNTY_Nam
+# hr_id: HR_NAME
+
+# hr
+hr_id, area_sq_m, area_acres, max_mask_area_acres, mean_inches, mean_acre_ft, timestep, year, month, year_month
+# basin
+basin_id, area_sq_m, area_acres, max_mask_area_acres, mean_inches, mean_acre_ft, timestep, year, month, year_month
+# county
+county_id, area_sq_m, area_acres, max_mask_area_acres, mean_inches, mean_acre_ft, timestep, year, month, year_month
