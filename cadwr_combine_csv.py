@@ -14,30 +14,17 @@ def main(features='basins'):
 
         if features.lower() in ['basins', 'gw_basins']:
             export_name = f'gw_basin_{export_name}'
-            # Feature property used to uniquely identify each feature
             feature_id_property = 'Basin_Subb'
             # feature_coll_id = 'projects/ee-cgmorton/assets/ca_gw_basins'
-            # # feature_id_property = 'Filter_NAM'
-            # # These feature properties will be written to the CSV files
-            # feature_properties = ['Basin_Numb', 'Basin_Name', 'Basin_Su_1']
         elif features.lower() in ['counties', 'county']:
             export_name = f'county_{export_name}'
-            # Feature property used to uniquely identify each feature
             feature_id_property = 'NAME'
             # feature_coll_id = 'projects/ee-cgmorton/assets/ca_counties'
             # feature_properties = ['GEOID', 'STATEFP', 'COUNTYFP']
-            # # ALAND: 9778891285
-            # # AWATER: 185818274
-            # # COUNTYFP: 089
-            # # COUNTYNS: 01682610
-            # # GEOID: 06089
-            # # GEOIDFQ: 0500000US06089
-            # # LSAD: 06
-            # # NAME: Shasta
-            # # NAMELSAD: Shasta County
-            # # STATEFP: 06
-            # # STATE_NAME: California
-            # # STUSPS: CA
+        elif features.lower() in ['regions', 'hr', 'hydrologic_regions']:
+            export_name = f'hydrologic_region_{export_name}'
+            feature_id_property = 'HR_NAME'
+            # feature_coll_id = 'projects/ee-cgmorton/assets/ca_hydrologic_regions'
         else:
             raise ValueError(f'unsupported features parameter: {features}')
 
@@ -76,14 +63,13 @@ def main(features='basins'):
             model_df = pd.concat(map(pd.read_csv, csv_list), ignore_index=True)
             model_df.sort_values([feature_id_property, 'DATE'], inplace=True)
 
-            # # Convert units to inches?
+            # # Convert units to inches here?
             # model_df['ET_MEAN_MM'] = model_df['ET_MEAN']
             # model_df['ET_MEAN_INCH'] = round(model_df['ET_MEAN'] / 25.4, 6)
             # del model_df['ET_MEAN']
             print(f'Rows: {len(model_df.index)}')
 
             export_df_list.append(model_df)
-            # print(model_df)
 
             model_df.to_csv(os.path.join(export_ws, f'{export_name}_{model.lower()}.csv'), index=False)
 
@@ -98,7 +84,7 @@ def arg_parse():
         description='Extract California/CIMIS OpenET monthly aggregations for all lands',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--features', default='basins', choices=['basins', 'counties'],
+        '--features', default='basins', choices=['basins', 'counties', 'regions'],
         help='Features to aggregate over')
     # parser.add_argument(
     #     '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
