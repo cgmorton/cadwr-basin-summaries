@@ -164,7 +164,6 @@ def main(
             )
 
             if os.path.exists(model_date_csv) and not overwrite_flag:
-                print(model_date_csv)
                 logging.debug('  csv already exist and overwrite is False')
                 continue
 
