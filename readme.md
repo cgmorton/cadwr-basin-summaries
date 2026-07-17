@@ -22,6 +22,32 @@ Example to run:
 ```python
 python stitch_to_gw_shapefile.py --shp-file ./ca_counties/CA_Counties.shp --et-csv ./csv_county_ag_lands/county_ag_lands_all_models.csv --merge-key NAME --out ./shapefile_counties_ag_lands
 ```
+
+## Saving extracted data to open data format
+Formatting the extracted data to open data format. The 'convert_to_opendata_csv.py' script combines the extracted tabular data with feature geometries to convert ET volume (acre-ft) and standardize depth units to inches. Area for each region is sourced from the shapefile to convert depth to volume in acre-ft. 
+
+To run the `convert_to_opendata_csv.py` python script, use the 5 parameters:
+- feature : feature name [county, gw_basin, regions, hr]
+- shp-file  : feature boundaries
+- et-csv    : et timeseries
+- merge-key : the column that the shapefile and et data use (must be identical)
+- out   : output directory
+
+Example to run:
+### Generate hydrologic regions ag-mask table
+```python
+python convert_to_opendata_csv.py --feature 'regions' --shp-file ./i03_Hydrologic_Regions/i03_Hydrologic_Regions.shp --et-csv ./csv_hydrologic_region_ag_lands/hydrologic_region_ag_lands_all_models.csv --merge-key HR_NAME --out ./open_data_csvs/
+```
+### Generate county ag-mask table
+```python
+python convert_to_opendata_csv.py --feature 'county' --shp-file ./ca_counties/CA_Counties.shp --et-csv ./csv_county_ag_lands/county_ag_lands_all_models.csv --merge-key NAME --out ./open_data_csvs/
+```
+### Generate groundwater basin table
+```python
+python convert_to_opendata_csv.py --feature 'gw_basin' --shp-file ./ca_gw_basins/ca_gw_basins.shp --et-csv ./csv_gw_basin_ag_lands/gw_basin_ag_lands_all_models.csv --merge-key Basin_Subb --out ./open_data_csvs/
+```
+
+
 ## Metadata 
 * The shapefiles are formatted such that outputs are saved as 'MODELNAME_STAT.shp'
   * 'MODELNAME' refers to individual OpenET models or the ensemble ET value.
