@@ -27,14 +27,27 @@ if __name__ == "__main__":
     merge_on = args.merge_key
     features = args.feature
     out_path = args.out
-    if features.lower() in ['hydrologic_region', 'hr', 'hydrologic_regions']:
+    if features.lower() in ['regions','hydrologic_region', 'hr', 'hydrologic_regions']:
         reference_shp = gpd.read_file('i03_Hydrologic_Regions/i03_Hydrologic_Regions.shp')
         reference_shp = reference_shp[reference_shp['OBJECTID'] != 12]
         reference_shp = reference_shp[reference_shp['OBJECTID'] != 20]
+        
+        # All model ET data
+        all_data_df = pd.read_csv(args.et_csv, parse_dates=["DATE"])
+        all_data_df = all_data_df[all_data_df['HR_NAME'] != "California Islands"]
+        
     elif features.lower() in ['']:
         reference_shp = gpd.read_file
+        
+        # All model ET data
+        all_data_df = pd.read_csv(args.et_csv, parse_dates=["DATE"])
+        
     else:
         reference_shp = gpd.read_file(args.shp_file)
+        
+        # All model ET data
+        all_data_df = pd.read_csv(args.et_csv, parse_dates=["DATE"])
+        
     if verbose ==True:
         print(reference_shp.head())
     # Features are meter-based CRS - so area actually works here
@@ -42,9 +55,6 @@ if __name__ == "__main__":
     # Conversion to acres from sq meters
     reference_shp["area_acres"] = np.round(reference_shp["area_sq_meters"] / METERS_TO_ACRES,2)
     ref_shp_slim = reference_shp[[merge_on, "area_sq_meters", "area_acres", "geometry"]].copy()
-
-    # All model ET data
-    all_data_df = pd.read_csv(args.et_csv, parse_dates=["DATE"])
     
     if verbose ==True:
         print(all_data_df.columns)
@@ -58,11 +68,16 @@ if __name__ == "__main__":
     # convert to series to divide into dataframe along rows
     max_pixels_series = max_pixels["PIXEL_COUNT"]
     
+    
     # Each pixel is 900m^2
     # Multiplying pixel area by max pixel count gives max total area
-    max_pixels["max_mask_area_acres"] = np.round(max_pixels["PIXEL_COUNT"] * 900 / METERS_TO_ACRES,2)
+    max_pixels["max_mask_area_m2"] = max_pixels["PIXEL_COUNT"] * 900
+
+    max_pixels["max_mask_area_acres"] = np.round(max_pixels["PIXEL_COUNT"] * 900 / METERS_TO_ACRES,)
     
     # print(max_pixels)
+    max_area_series_m2 = max_pixels["max_mask_area_m2"]
+
     max_area_series = max_pixels["max_mask_area_acres"]
     
     all_data_df = all_data_df.merge(
@@ -75,7 +90,7 @@ if __name__ == "__main__":
     max_area_series_acres = max_area_series / METERS_TO_ACRES
 
     # Multiply the mean ET value by the maximum total area to compute the volume of ET for each groundwater basin or county boundary.
-    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 1000) * (max_area_series[g[merge_on]] / ACREFT_TO_METERS3), axis=1)
+    all_data_df["ET_VOL"] = all_data_df.apply(lambda g: (g["ET_MEAN"] / 1000) * (max_area_series_m2[g[merge_on]] / ACREFT_TO_METERS3), axis=1)
     all_data_df["ET_acre_ft"] = all_data_df["ET_VOL"].round(2).copy()
     
     # Unit conversion to inches.
@@ -117,8 +132,8 @@ if __name__ == "__main__":
         has_no_missing = group[["ET_mean_in", "ET_acre_ft"]].notna().all().all()
     
         return pd.Series({
-            "ET_mean_in": group["ET_mean_in"].sum() if has_all_months and has_no_missing else np.nan,
-            "ET_acre_ft": group["ET_acre_ft"].sum() if has_all_months and has_no_missing else np.nan,
+            "ET_mean_in": np.round(group["ET_mean_in"].sum(),2) if has_all_months and has_no_missing else np.nan,
+            "ET_acre_ft": np.round(group["ET_acre_ft"].sum(),2) if has_all_months and has_no_missing else np.nan,
             "n_months": group["month"].nunique(),
             "n_missing_ET_mean_in": group["ET_mean_in"].isna().sum(),
             "n_missing_ET_acre_ft": group["ET_acre_ft"].isna().sum()
@@ -131,6 +146,7 @@ if __name__ == "__main__":
         .apply(sum_only_complete_water_year)
         .reset_index()
     )
+
     # Assign row-level fields so columns match monthly table
     water_year_rows["timestep"] = "water_year"
     water_year_rows["year"] = water_year_rows["water_year"]
