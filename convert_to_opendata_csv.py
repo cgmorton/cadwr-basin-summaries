@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # Features are meter-based CRS - so area actually works here
     reference_shp["area_sq_meters"] = reference_shp.area
     # Conversion to acres from sq meters
-    reference_shp["area_acres"] = reference_shp["area_sq_meters"] / METERS_TO_ACRES
+    reference_shp["area_acres"] = np.round(reference_shp["area_sq_meters"] / METERS_TO_ACRES,2)
     ref_shp_slim = reference_shp[[merge_on, "area_sq_meters", "area_acres", "geometry"]].copy()
 
     # All model ET data
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     
     # Each pixel is 900m^2
     # Multiplying pixel area by max pixel count gives max total area
-    max_pixels["max_mask_area_acres"] = max_pixels["PIXEL_COUNT"] * 900
+    max_pixels["max_mask_area_acres"] = np.round(max_pixels["PIXEL_COUNT"] * 900 / METERS_TO_ACRES,2)
     
     # print(max_pixels)
     max_area_series = max_pixels["max_mask_area_acres"]
@@ -79,10 +79,10 @@ if __name__ == "__main__":
     all_data_df["ET_acre_ft"] = all_data_df["ET_VOL"].round(2).copy()
     
     # Unit conversion to inches.
-    all_data_df["ET_mean_in"] = all_data_df["ET_MEAN"] / MM_TO_IN
+    all_data_df["ET_mean_in"] = np.round(all_data_df["ET_MEAN"] / MM_TO_IN, 2) 
     
     # Assign max area acres to each polygon
-    ref_shp_slim["max_mask_area_acres"] = reference_shp.apply(lambda g: max_area_series_acres[g[merge_on]], axis=1)
+    # ref_shp_slim["max_mask_area_acres"] = reference_shp.apply(lambda g: max_area_series_acres[g[merge_on]], axis=1)
     
     all_data_df["DATE"] = pd.to_datetime(all_data_df["DATE"])
     all_data_df["year_month"] = all_data_df["DATE"].dt.strftime("%Y-%m")
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     )
     # Assign row-level fields so columns match monthly table
     water_year_rows["timestep"] = "water_year"
-    water_year_rows["year"] = np.nan
+    water_year_rows["year"] = water_year_rows["water_year"]
     
     # Choose ONE of these month options:
     water_year_rows["month"] = np.nan
