@@ -15,7 +15,7 @@ logging.getLogger('googleapiclient').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 
 # CGM - Intentionally excluding SIMS from the "all lands" analysis
-MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SSEBOP', 'ENSEMBLE']
+MODELS = ['DISALEXI', 'EEMETRIC', 'GEESEBAL', 'PTJPL', 'SSEBOP', 'ENSEMBLE', 'FILLED']
 PROJECT_ID = 'openet'
 START_DATE = '2003-10-01'
 END_DATE = '2026-01-01'
@@ -91,18 +91,26 @@ def main(
         raise ValueError(f'unsupported features parameter: {features}')
 
     model_coll_ids = {
-        'DISALEXI': f'projects/openet/assets/disalexi/california/cimis/monthly/v2_1',
-        'EEMETRIC': f'projects/openet/assets/eemetric/california/cimis/monthly/v2_1',
-        'GEESEBAL': f'projects/openet/assets/geesebal/california/cimis/monthly/v2_1',
-        'PTJPL': f'projects/openet/assets/ptjpl/california/cimis/monthly/v2_1',
+        'DISALEXI': 'projects/openet/assets/disalexi/california/cimis/monthly/v2_1',
+        'EEMETRIC': 'projects/openet/assets/eemetric/california/cimis/monthly/v2_1',
+        'GEESEBAL': 'projects/openet/assets/geesebal/california/cimis/monthly/v2_1',
+        'PTJPL': 'projects/openet/assets/ptjpl/california/cimis/monthly/v2_1',
         # CGM - Intentionally excluding SIMS from the "all lands" analysis
-        # 'SIMS': f'projects/openet/assets/sims/california/cimis/monthly/v2_1',
-        'SSEBOP': f'projects/openet/assets/ssebop/california/cimis/monthly/v2_1',
-        'ENSEMBLE': f'projects/openet/assets/ensemble/california/cimis/monthly/v2_1',
+        # 'SIMS': 'projects/openet/assets/sims/california/cimis/monthly/v2_1',
+        'SSEBOP': 'projects/openet/assets/ssebop/california/cimis/monthly/v2_1',
+        'ENSEMBLE': 'projects/openet/assets/ensemble/california/cimis/monthly/v2_1',
+        'FILLED': 'projects/openet/assets/ensemble/california/cimis/monthly/v2_1_filled',
     }
-
-    model_et_band = 'et'
-    ensemble_et_band = 'et_ensemble_mad'
+    model_et_band = {
+        'DISALEXI': 'et',
+        'EEMETRIC': 'et',
+        'GEESEBAL': 'et',
+        'PTJPL': 'et',
+        'SIMS': 'et',
+        'SSEBOP': 'et',
+        'ENSEMBLE': 'et_ensemble_mad',
+        'FILLED': 'et_filled',
+    }
 
     export_ws = os.path.join(os.getcwd(), f'csv_{export_name}')
     if not os.path.isdir(export_ws):
@@ -110,7 +118,7 @@ def main(
 
     # # DEADBEEF
     # ee.Initialize(
-    #     ee.ServiceAccountCredentials('_', key_file='../../keys/openet-gee.json'),
+    #     ee.ServiceAccountCredentials('_', key_file='key.json'),
     #     opt_url='https://earthengine-highvolume.googleapis.com'
     # )
     ee_initializer(project_id=project_id, opt_url='https://earthengine-highvolume.googleapis.com')
@@ -124,11 +132,6 @@ def main(
     # Process by model and date
     for model_name in models:
         print(f'\n{model_name}')
-
-        if model_name == 'ENSEMBLE':
-            et_band = ensemble_et_band
-        else:
-            et_band = model_et_band
 
         model_coll_id = model_coll_ids[model_name]
         logging.debug(f'  {model_coll_id}')
@@ -161,14 +164,17 @@ def main(
                 continue
 
             input_list = [
-                [image_date, model_coll_id, ftr_id, feature_coll_id, feature_id_property, et_band]
+                [
+                    image_date, model_coll_id, ftr_id, feature_coll_id, feature_id_property,
+                    model_et_band[model_name]
+                ]
                 for ftr_id, ftr_properties in feature_info.items()
             ]
 
             # # Uncomment to test the function call for a single image and feature
             # print(feature_extract(
             #     image_date, model_coll_id, list(feature_info.keys())[0],
-            #     feature_coll_id, feature_id_property, et_band=et_band,
+            #     feature_coll_id, feature_id_property, et_band=model_et_band[model_name],
             # ))
             # break
 
@@ -199,7 +205,7 @@ def main(
 
 
 def ee_initializer(project_id=PROJECT_ID, opt_url='https://earthengine-highvolume.googleapis.com'):
-    # ee.Initialize(ee.ServiceAccountCredentials('_', key_file='../../keys/openet-gee.json'), opt_url=opt_url)
+    # ee.Initialize(ee.ServiceAccountCredentials('_', key_file='key.json'), opt_url=opt_url)
     ee.Initialize(project=project_id, opt_url=opt_url)
 
 
