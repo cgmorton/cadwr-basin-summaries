@@ -298,7 +298,7 @@ def arg_parse():
         description='Extract California/CIMIS OpenET monthly aggregations for agricultural lands',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--features', default='basins', choices=['basins', 'counties'],
+        '--features', default='basins', choices=['basins', 'counties', 'regions'],
         help='Features to aggregate over')
     parser.add_argument(
         '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
