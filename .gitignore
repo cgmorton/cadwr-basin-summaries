@@ -1,5 +1,6 @@
 # Jupyter Notebook
 .ipynb_checkpoints
+.virtual_documents
 
 # PyCharm project settings
 .idea

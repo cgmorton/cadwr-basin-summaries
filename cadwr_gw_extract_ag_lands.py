@@ -239,7 +239,7 @@ def feature_extract(
     # CGM - Defining here to reduce the number of parameters passed to the function
     # Exclude urban pixels/polygons in the California statewide crop mapping data
     ag_mask = ee.Image('projects/csumb-et-tools/assets/ca2024_urbanmask')
-    
+
     ag_mask = ag_mask.updateMask(ag_mask.neq(82))
 
     feature = (
@@ -298,7 +298,7 @@ def arg_parse():
         description='Extract California/CIMIS OpenET monthly aggregations for agricultural lands',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--features', default='counties', choices=['basins', 'counties', 'regions'],
+        '--features', default='basins', choices=['basins', 'counties'],
         help='Features to aggregate over')
     parser.add_argument(
         '--models', nargs='+', metavar='', default=MODELS, choices=MODELS,
