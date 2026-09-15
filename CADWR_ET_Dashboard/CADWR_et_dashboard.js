@@ -43,37 +43,32 @@ var state = ee.FeatureCollection("TIGER/2018/States")
 // agricultural mask
 var ag_mask = ee.Image('projects/csumb-et-tools/assets/ca2024_urbanmask');
 ag_mask = ag_mask.updateMask(ag_mask.neq(82));
-  
-  
-var model_list = [
-  'DISALEXI',
+
+
+var modelOrder = [
+  'ENSEMBLE',
   'EEMETRIC',
-  'ENSEMBLE', 
-  'GEESEBAL', 
-  'PTJPL', 
-  'SIMS', 
-  'SSEBOP',
-];
-  
-var color_list = [
-  'purple',
-  'lightblue',
-  'navy',
-  'magenta',
-  'limegreen',
-  'yellow',
-  'orange',
+  'DISALEXI',
+  'GEESEBAL',
+  'PTJPL',
+  'SIMS',
+  'SSEBOP'
 ];
 
 var color_dict = {
-  'DISALEXI': 'purple',
-  'EEMETRIC': 'lightblue',
   'ENSEMBLE': 'navy',
-  'GEESEBAl': 'magenta',
+  'EEMETRIC': 'lightblue',
+  'DISALEXI': 'purple',
+  'GEESEBAL': 'magenta',
   'PTJPL': 'limegreen',
   'SIMS': 'yellow',
   'SSEBOP': 'orange',
 };
+
+// color_dict must be a normal JavaScript object, not ee.Dictionary.
+var color_list = modelOrder.map(function(modelName) {
+  return color_dict[modelName];
+});
 
 
 // -------------------------------------------------------------------------
@@ -848,54 +843,193 @@ function chart_0() {
   var startDate = c.years.StartSelector.getValue() + '-01-01';
   var endDate = (c.years.EndSelector.getValue() + 1) + '-01-01';
 
-  var chartData = m.all_data_tab
+  // This is your desired legend/series order.
+  var modelOrder = [
+    'ENSEMBLE',
+    'EEMETRIC',
+    'DISALEXI',
+    'GEESEBAL',
+    'PTJPL',
+    'SIMS',
+    'SSEBOP'
+  ];
+
+  /*
+   * Retrieve only the values required for the chart.
+   *
+   * Filtering ET_MEAN nulls here is important:
+   * it prevents models with no plottable data from becoming null series.
+   */
+  var chartRows = m.all_data_tab
     .filter(ee.Filter.eq('AGG_ID', agg_name))
     .filter(ee.Filter.eq('LANDCOVER', landcover))
     .filter(ee.Filter.gte('DATE', startDate))
     .filter(ee.Filter.lt('DATE', endDate))
-    .select(['DATE', 'MODEL', 'ET_MEAN'])
+    .filter(ee.Filter.inList('MODEL', modelOrder))
+    .filter(ee.Filter.notNull(['DATE', 'MODEL', 'ET_MEAN']))
     .map(function(ftr) {
-      return ftr.set('Date',
-        ee.Date.parse('yyyy-MM-dd', ee.String(ftr.get('DATE')))
+      var date = ee.Date.parse(
+        'yyyy-MM-dd',
+        ee.String(ftr.get('DATE'))
       );
+
+      // A compact chart-only row:
+      // [milliseconds since epoch, model name, ET value]
+      return ee.Feature(null, {
+        row: ee.List([
+          date.millis(),
+          ftr.get('MODEL'),
+          ftr.get('ET_MEAN')
+        ])
+      });
     })
-    .sort('Date');
+    .aggregate_array('row');
 
-  var chart = ui.Chart.feature.groups(
-      chartData,
-      'Date',
-      'ET_MEAN',
-      'MODEL'
-    )
-    .setChartType('LineChart')
-    .setOptions({
-      title: 'OpenET Actual ET Rates',
-      titleTextStyle: s.textStyle,
+  chartRows.evaluate(function(rows) {
+    if (!rows || rows.length === 0) {
+      c.charts.chart_0.widgets().set(
+        0,
+        ui.Label('No ET data are available for this selection.')
+      );
+      return;
+    }
 
-      hAxis: {
-        title: 'Date',
-        titleTextStyle: {italic: false, bold: true},
-        format: m.date_format
-      },
+    /*
+     * Identify models that truly have at least one valid ET_MEAN value.
+     * Keep modelOrder order—not collection order.
+     */
+    var modelsPresent = {};
 
-      vAxis: {
-        title: 'ETa (mm)',
-        titleTextStyle: {italic: false, bold: true},
-        viewWindowMode: 'explicit',
-        viewWindow: {min: 0}
-      },
-      colors: color_list,
-      lineWidth: 2,
-      pointSize: 1,
-
-      legend: {
-        position: 'top'
-      }
+    rows.forEach(function(row) {
+      modelsPresent[row[1]] = true;
     });
 
-  c.charts.chart_0.widgets().set(0, chart);
-}
+    var activeModels = modelOrder.filter(function(modelName) {
+      return modelsPresent[modelName] === true;
+    });
 
+    if (activeModels.length === 0) {
+      c.charts.chart_0.widgets().set(
+        0,
+        ui.Label('No valid ET data are available for this selection.')
+      );
+      return;
+    }
+
+    /*
+     * Each color is associated with the corresponding active model.
+     *
+     * Example:
+     * activeModels = ['ENSEMBLE', 'DISALEXI', 'SIMS']
+     *
+     * activeColors = [
+     *   color_dict['ENSEMBLE'],
+     *   color_dict['DISALEXI'],
+     *   color_dict['SIMS']
+     * ]
+     */
+    var activeColors = activeModels.map(function(modelName) {
+      return color_dict[modelName];
+    });
+
+    // Map model name -> its guaranteed column position.
+    var modelIndex = {};
+    activeModels.forEach(function(modelName, index) {
+      modelIndex[modelName] = index;
+    });
+
+    /*
+     * Build one wide chart row per date:
+     *
+     * [Date, ENSEMBLE, EEMETRIC, DISALEXI, ...]
+     *
+     * Models missing on an individual date retain null. That is okay.
+     * Models missing for the entire selection were removed above.
+     */
+    var rowsByDate = {};
+
+    rows.forEach(function(row) {
+      var millis = row[0];
+      var modelName = row[1];
+      var etMean = row[2];
+
+      if (!rowsByDate[millis]) {
+        var wideRow = [];
+      
+        // First column is the chart domain/date.
+        wideRow.push(new Date(Number(millis)));
+      
+        // Add one null placeholder for each model/series.
+        for (var i = 0; i < activeModels.length; i++) {
+          wideRow.push(null);
+        }
+      
+        rowsByDate[millis] = wideRow;
+      }
+
+      rowsByDate[millis][modelIndex[modelName] + 1] = etMean;
+    });
+
+    // Sort the wide rows chronologically.
+    var chartDataRows = Object.keys(rowsByDate)
+      .map(function(millis) {
+        return rowsByDate[millis];
+      })
+      .sort(function(a, b) {
+        return a[0].getTime() - b[0].getTime();
+      });
+
+    // Create the data-table header in exactly the same order as activeModels.
+    var columnHeader = [{
+      label: 'Date',
+      role: 'domain',
+      type: 'date'
+    }];
+
+    activeModels.forEach(function(modelName) {
+      columnHeader.push({
+        label: modelName,
+        role: 'data',
+        type: 'number'
+      });
+    });
+
+    var chart = ui.Chart([columnHeader].concat(chartDataRows))
+      .setChartType('LineChart')
+      .setOptions({
+        title: 'OpenET Actual ET Rates',
+        titleTextStyle: s.textStyle,
+
+        hAxis: {
+          title: 'Date',
+          titleTextStyle: {italic: false, bold: true},
+          format: m.date_format
+        },
+
+        vAxis: {
+          title: 'ETa (mm)',
+          titleTextStyle: {italic: false, bold: true},
+          viewWindowMode: 'explicit',
+          viewWindow: {min: 0}
+        },
+
+        // Exact mapping: activeColors[i] belongs to activeModels[i].
+        colors: activeColors,
+
+        lineWidth: 2,
+        pointSize: 1,
+
+        // Leave gaps where an otherwise-present model lacks a date.
+        interpolateNulls: false,
+
+        legend: {
+          position: 'top'
+        }
+      });
+
+    c.charts.chart_0.widgets().set(0, chart);
+  });
+}
 
 
 // ET RATE
