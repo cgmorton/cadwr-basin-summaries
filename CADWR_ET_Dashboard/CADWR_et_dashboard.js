@@ -7,7 +7,7 @@
 
 // 2023-2025 CADWR County, groundwater basin, and hydrologic region ET
 // variables:
-// ET (mm), Pixel Count, Missing ET Flag
+// ET, Pixel Count, Missing ET Flag
 
 
 
@@ -88,18 +88,12 @@ var color_dict = {
 // #########  data tables used for charting
 
 // 2003-2025 monthly ET stats data tables
-m.monthly_ag_data_tab_county = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/county_ag_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'AG_LANDS'})});
-m.monthly_all_data_tab_county = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/county_all_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'ALL_LANDS'})});
-m.monthly_ag_data_tab_gw_basin = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/gw_basin_ag_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'AG_LANDS'})});
-m.monthly_all_data_tab_gw_basin = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/gw_basin_all_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'ALL_LANDS'})});
-m.monthly_ag_data_tab_hr_region = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/hydro_region_ag_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'AG_LANDS'})});
-m.monthly_all_data_tab_hr_region = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/hydro_region_all_lands_all_models')
-  .map(function(ftr){return ftr.set({'LANDCOVER': 'ALL_LANDS'})});
+m.monthly_ag_data_tab_county = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/county_ag_lands_all_models');
+m.monthly_all_data_tab_county = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/county_all_lands_all_models');
+m.monthly_ag_data_tab_gw_basin = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/gw_basin_ag_lands_all_models');
+m.monthly_all_data_tab_gw_basin = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/gw_basin_all_lands_all_models');
+m.monthly_ag_data_tab_hr_region = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/hydro_region_ag_lands_all_models');
+m.monthly_all_data_tab_hr_region = ee.FeatureCollection('projects/ee-bminor/assets/CDWR/ET_EEapp/hydro_region_all_lands_all_models');
 m.all_data_tab = m.monthly_ag_data_tab_county.merge(m.monthly_all_data_tab_county)
   .merge(m.monthly_ag_data_tab_gw_basin).merge(m.monthly_all_data_tab_gw_basin)
   .merge(m.monthly_ag_data_tab_hr_region).merge(m.monthly_all_data_tab_hr_region);
@@ -355,10 +349,12 @@ c.d_link.panel = ui.Panel();
 c.dataVarsET = {};
 c.dataVarsET.titleLabel = ui.Label("Data Variables:");
 c.dataVarsET.text1 = ui.Label("ETa - OpenET actual ET");
+c.dataVarsET.text2 = ui.Label("% of Max Pixels: values expressed as the percentage of max clear-sky pixel counts analyzed within the spatial aggregation, OpenET model, and landcover type. A value of 100% represents complete satellite retrieval coverage for the month, while lower values indicate that a smaller percentage of pixels were retrieved and produced valid ET estimates.");
+c.dataVarsET.text3 = ui.Label("MISSING ET MONTH: Flag for when there were no monthly ET pixels available within the aggregation region due to cloud cover and/or a lack of Landsat overpass-date observations.");
 
 
 c.dataVarsET.panel = ui.Panel([
-    c.dataVarsET.titleLabel, c.dataVarsET.text1
+    c.dataVarsET.titleLabel, c.dataVarsET.text1, c.dataVarsET.text2, c.dataVarsET.text3
 ]);
 
 
@@ -719,6 +715,16 @@ c.dataVarsET.text1.style().set({
     margin: '4px 4px 4px 30px',
     color: 'purple',
 });
+c.dataVarsET.text2.style().set({
+    fontSize: '14px',
+    margin: '4px 4px 4px 30px',
+    color: 'blue',
+});
+c.dataVarsET.text3.style().set({
+    fontSize: '14px',
+    margin: '4px 4px 4px 30px',
+    color: 'orange',
+});
 
 
 // Data Sources 
@@ -985,7 +991,7 @@ function chart_2() {
       var date_millis = date_str.millis().format();
       var date = ee.String('Date(').cat(date_millis).cat(')');
       
-      var pxc = ftr.get('PIXEL_COUNT');
+      var pxc = ftr.get('PERCENT_OF_MAX_PIXELS');
       
       var row = ee.List([date, pxc]);
       
@@ -997,14 +1003,14 @@ function chart_2() {
   
     var columnHeader = ee.List([[
       {label: 'Date', role: 'domain', type:'date'},
-      {label: 'Pixel Count', role:'data', type:'number'},
+      {label: '% of Max Pixels', role:'data', type:'number'},
     ]]);
   
     dataTableServer = columnHeader.cat(dataTableServer);
   
     dataTableServer.evaluate(function(dataTableClient) {
       var chart = ui.Chart(dataTableClient).setOptions({
-        title: 'OpenET ' + model + ' Pixel Count',
+        title: 'OpenET ' + model + ' Percent of Max Available Pixels',
         titleTextStyle: s.textStyle,
         hAxis: {
           title: 'Date',
@@ -1012,7 +1018,7 @@ function chart_2() {
           format: m.date_format
         },
         vAxis: {
-          title: 'Pixel Count',
+          title: '% of Max Pixels',
           titleTextStyle: {italic: false, bold: true},
           // viewWindowMode: 'explicit',
           // viewWindow: {min: 0}
@@ -1028,7 +1034,7 @@ function chart_2() {
 
 
 
-// MISSING ET FLAG
+// MISSING ET MONTH
 function chart_3() {
     var point = ee.Geometry.Point([ee.Number.parse(c.lon.getValue()), ee.Number.parse(c.lat.getValue())]);
     var data = m.f_dict[c.aggType.aggTypeSelector.getValue()];
@@ -1049,7 +1055,7 @@ function chart_3() {
       var date_millis = date_str.millis().format();
       var date = ee.String('Date(').cat(date_millis).cat(')');
       
-      var flg = ftr.get('MISSING_ET_FLAG');
+      var flg = ftr.get('MISSING_ET_MONTH');
       
       var row = ee.List([date, flg]);
       
@@ -1068,18 +1074,34 @@ function chart_3() {
   
     dataTableServer.evaluate(function(dataTableClient) {
       var chart = ui.Chart(dataTableClient).setOptions({
-        title: 'OpenET ' + model + ' Missing ET',
+        title: 'OpenET ' + model + ' Missing ET Months',
         titleTextStyle: s.textStyle,
         hAxis: {
           title: 'Date',
           titleTextStyle: {italic: false, bold: true},
           format: m.date_format
         },
+        // vAxis: {
+        //   title: 'Missing ET Flag',
+        //   titleTextStyle: {italic: false, bold: true},
+        //   // viewWindowMode: 'explicit',
+        //   // viewWindow: {min: 0}
+        // },
         vAxis: {
-          title: 'Missing ET Flag',
+          title: 'Missing ET Month',
           titleTextStyle: {italic: false, bold: true},
-          // viewWindowMode: 'explicit',
-          // viewWindow: {min: 0}
+
+          // Keep the plot constrained to Boolean-like values.
+          viewWindow: {
+            min: -0.1,
+            max: 1.1
+          },
+
+          // Display Boolean labels while plotting numeric values.
+          ticks: [
+            {v: 0, f: 'False'},
+            {v: 1, f: 'True'}
+          ]
         },
         colors: ['chocolate'],
         legend: {
@@ -1175,7 +1197,7 @@ function download_data() {
 
     var url_et = ee.FeatureCollection(download_fc_et).getDownloadURL({
         format: 'csv',
-        selectors: ['DATE', "MODEL", 'ET_MEAN', 'ET_MEDIAN', 'ET_PCT25', 'ET_PCT75', 'ET_STDDEV', 'PIXEL_COUNT', 'MISSING_ET_FLAG'],
+        selectors: ['DATE', "MODEL", 'ET_MEAN', 'ET_MEDIAN', 'ET_PCT25', 'ET_PCT75', 'ET_STDDEV', 'PIXEL_COUNT', 'PERCENT_OF_MAX_PIXELS', 'MISSING_ET_MONTH'],
         filename: 'CADWR_ET_' + agg_type + '_' + landcover  + '_' + start_year + '_' + end_year + '_' + agg_name
     });
 
