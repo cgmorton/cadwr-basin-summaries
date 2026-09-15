@@ -344,8 +344,8 @@ c.d_link.panel = ui.Panel();
 c.dataVarsET = {};
 c.dataVarsET.titleLabel = ui.Label("Data Variables:");
 c.dataVarsET.text1 = ui.Label("ETa - OpenET actual ET");
-c.dataVarsET.text2 = ui.Label("% of Max Pixels: values expressed as the percentage of max clear-sky pixel counts analyzed within the spatial aggregation, OpenET model, and landcover type. A value of 100% represents complete satellite retrieval coverage for the month, while lower values indicate that a smaller percentage of pixels were retrieved and produced valid ET estimates.");
-c.dataVarsET.text3 = ui.Label("MISSING ET MONTH: Flag for when there were no monthly ET pixels available within the aggregation region due to cloud cover and/or a lack of Landsat overpass-date observations.");
+c.dataVarsET.text2 = ui.Label("Percent of Max Pixels: values expressed as the % of max clear-sky pixel counts analyzed within the spatial aggregation for the given OpenET model and landcover type. A value of 100% represents complete satellite retrieval coverage for the month, while lower values indicate that a smaller percentage of pixels were retrieved and produced valid ET estimates.");
+c.dataVarsET.text3 = ui.Label("Missing ET Month: Flag for when there were no monthly ET pixels available within the aggregation region due to cloud cover and/or a lack of Landsat overpass-date observations.");
 
 
 c.dataVarsET.panel = ui.Panel([
@@ -707,18 +707,18 @@ c.dataVarsET.titleLabel.style().set({
 });
 c.dataVarsET.text1.style().set({
     fontSize: '14px',
-    margin: '4px 4px 4px 30px',
-    color: 'purple',
+    margin: '4px 4px 4px 70px',
+    color: 'black',
 });
 c.dataVarsET.text2.style().set({
     fontSize: '14px',
-    margin: '4px 4px 4px 30px',
-    color: 'blue',
+    margin: '4px 4px 4px 70px',
+    color: 'black',
 });
 c.dataVarsET.text3.style().set({
     fontSize: '14px',
-    margin: '4px 4px 4px 30px',
-    color: 'orange',
+    margin: '4px 4px 4px 70px',
+    color: 'black',
 });
 
 
