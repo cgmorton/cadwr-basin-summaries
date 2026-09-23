@@ -355,12 +355,15 @@ c.dataVarsET.panel = ui.Panel([
 
 c.dataSources = {};
 c.dataSources.titleLabel = ui.Label("Data Source:");
-c.dataSources.text1 = ui.Label("CADWR GitHub Repo")
+c.dataSources.text1 = ui.Label("CADWR Project Overview")
+        .setUrl('https://etdata.org/impact-stories/advancing-groundwater-sustainability-with-california-dwr-openet/');
+c.dataSources.text2 = ui.Label("CADWR Open Data Portal")
+        .setUrl('https://data.cnra.ca.gov/dataset/remotely-sensed-evapotranspiration-of-agricultural-lands-in-california');
+c.dataSources.text3 = ui.Label("CADWR GitHub Repo")
         .setUrl('https://github.com/cgmorton/cadwr-basin-summaries');
 
-
 c.dataSources.panel = ui.Panel([
-    c.dataSources.titleLabel, c.dataSources.text1,
+    c.dataSources.titleLabel, c.dataSources.text1, c.dataSources.text2, c.dataSources.text3,
 ]);
 
 // Disclaimer Panel
@@ -728,6 +731,14 @@ c.dataSources.titleLabel.style().set({
     fontWeight: 'bold',
 });
 c.dataSources.text1.style().set({
+    fontSize: '14px',
+    margin: '4px 4px 4px 30px',
+});
+c.dataSources.text2.style().set({
+    fontSize: '14px',
+    margin: '4px 4px 4px 30px',
+});
+c.dataSources.text3.style().set({
     fontSize: '14px',
     margin: '4px 4px 4px 30px',
 });
